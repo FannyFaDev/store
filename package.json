@@ -1,0 +1,40 @@
+{
+  "name": "nodejs-crud-web",
+  "version": "1.0.0",
+  "description": "Contoh CRUD Node.js + MySQL",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "nodejs",
+    "mysql",
+    "crud",
+    "express",
+    "web"
+  ],
+  "author": "FannyFaDeveloper",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^1.20.2",
+    "chalk": "^5.6.2",
+    "crypto": "^1.0.1",
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "express-mysql-session": "^3.0.3",
+    "express-session": "^1.18.2",
+    "http": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.0.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.16.0",
+    "socket.io": "^4.8.3",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

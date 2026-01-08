@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detail Produk</title>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<style>
+:root{
+  --bg:#f3f4f6;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#6b7280;
+  --primary:#4f46e5;
+  --border:#e5e7eb;
+}
+
+body.dark{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --border:#334155;
+}
+
+body{
+  margin:0;
+  font-family:Arial;
+  background:var(--bg);
+  color:var(--text);
+  transition:.3s;
+}
+
+.container{
+  max-width:720px;
+  margin:auto;
+  padding:1rem;
+}
+
+.card{
+  background:var(--card);
+  padding:1rem;
+  border-radius:14px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);
+  margin-bottom:1rem;
+}
+
+img,video{
+  width:100%;
+  max-height:320px;
+  object-fit:contain;
+  border-radius:12px;
+}
+
+.price{color:#ef4444;font-weight:bold;font-size:1.2rem}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:1rem;
+}
+
+button{
+  padding:.5rem 1rem;
+  border:none;
+  border-radius:8px;
+  background:var(--primary);
+  color:white;
+  cursor:pointer;
+}
+
+/* ===== COMMENT ===== */
+.comment{
+  display:flex;
+  gap:10px;
+  padding:.7rem 0;
+  border-bottom:1px solid var(--border);
+  transition: background 0.5s;
+}
+
+.comment.new-comment{
+  background: #fef3c7; /* highlight sementara */
+}
+
+.avatar{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.comment-body{flex:1}
+
+.comment-header{
+  display:flex;
+  justify-content:space-between;
+  font-size:.85rem;
+}
+
+.comment-user{font-weight:bold}
+.comment-date{color:var(--muted)}
+
+.comment-actions{
+  display:flex;
+  gap:10px;
+  font-size:.8rem;
+  margin-top:4px;
+}
+
+.comment-actions span{
+  cursor:pointer;
+  color:var(--muted);
+}
+
+.reply-box{
+  margin-top:6px;
+  display:none;
+}
+
+.reply-box textarea{
+  width:100%;
+  padding:.4rem;
+  border-radius:6px;
+}
+
+/* replies toggle */
+.replies{
+  margin-left:20px;
+}
+
+.toggle-replies{
+  font-size:.8rem;
+  cursor:pointer;
+  color:var(--primary);
+  margin-bottom:4px;
+  display:block;
+}
+
+/* ===== INPUT ===== */
+textarea{
+  width:100%;
+  padding:.6rem;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text);
+}
+
+.toggle{
+  background:none;
+  color:white;
+  font-size:1.2rem;
+}
+
+.product-card{
+  padding:1.2rem;
+  display:flex;
+  flex-direction:column;
+  gap:.8rem;
+  position:relative;
+  overflow:hidden;
+}
+
+/* header */
+.product-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.product-title{
+  font-size:1.35rem;
+  font-weight:800;
+  margin:0;
+}
+
+.product-badge{
+  font-size:.7rem;
+  padding:4px 10px;
+  border-radius:999px;
+  background:linear-gradient(135deg,#6366f1,#4f46e5);
+  color:#fff;
+}
+
+/* media */
+.product-media{
+  position:relative;
+}
+
+.product-media::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:12px;
+  box-shadow:inset 0 -40px 40px rgba(0,0,0,.35);
+  pointer-events:none;
+}
+
+.product-media img,
+.product-media video{
+  width:100%;
+  max-height:320px;
+  object-fit:contain;
+  border-radius:12px;
+  background:#000;
+}
+
+/* info */
+.product-info{
+  background:linear-gradient(
+    180deg,
+    transparent,
+    rgba(0,0,0,.04)
+  );
+  padding:.5rem .3rem;
+  border-radius:10px;
+}
+
+.product-desc{
+  color:var(--muted);
+  line-height:1.6;
+  margin:.4rem 0 0;
+}
+
+/* price */
+.price{
+  font-size:1.3rem;
+  font-weight:800;
+  color:#ef4444;
+}
+
+/* button */
+.buy-btn{
+  margin-top:.6rem;
+  padding:.75rem;
+  font-size:1rem;
+  font-weight:700;
+  border-radius:12px;
+  border:none;
+  cursor:pointer;
+  color:#fff;
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  box-shadow:0 6px 16px rgba(34,197,94,.35);
+  transition:.25s;
+}
+
+.buy-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 24px rgba(34,197,94,.45);
+}
+
+.fancy-topbar{
+  background:var(--card);
+  border-radius:14px;
+  padding:.75rem 1rem;
+  margin-bottom:1rem;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  box-shadow:0 4px 12px rgba(0,0,0,.08);
+  border:1px solid var(--border);
+}
+
+/* back link */
+.back-link{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  text-decoration:none;
+  color:var(--text);
+  font-weight:600;
+  font-size:.9rem;
+  padding:.4rem .6rem;
+  border-radius:10px;
+  transition:.2s;
+}
+
+.back-link:hover{
+  background:rgba(79,70,229,.1);
+  color:var(--primary);
+}
+
+/* actions */
+.topbar-actions{
+  display:flex;
+  gap:10px;
+}
+
+/* theme button */
+.theme-btn{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.1rem;
+  background:linear-gradient(135deg,#4f46e5,#6366f1);
+  box-shadow:0 6px 14px rgba(79,70,229,.35);
+  transition:.25s;
+}
+
+.theme-btn:hover{
+  transform:rotate(-10deg) scale(1.05);
+}
+
+/* dark mode adjustment */
+body.dark .fancy-topbar{
+  background:var(--card);
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+}
+
+/* ===== TOPBAR ANIMATION ===== */
+#topbar{
+  position:sticky;
+  top:0;
+  z-index:20;
+  transition:transform .35s ease, opacity .35s ease;
+}
+
+#topbar.hide{
+  transform:translateY(-120%);
+  opacity:0;
+}
+
+/* cart button */
+.cart-btn{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  border:none;
+  font-size:1.1rem;
+  cursor:pointer;
+  background:#22c55e;
+  color:white;
+  box-shadow:0 6px 14px rgba(34,197,94,.35);
+  transition:.25s;
+}
+
+.cart-btn:hover{
+  transform:scale(1.08);
+  background:#16a34a;
+}
+
+.desc{
+  line-height:1.6;
+  max-height:4.8em; /* ~3 baris */
+  overflow:hidden;
+  position:relative;
+  transition:max-height .3s ease;
+}
+
+.desc.expanded{
+  max-height:1000px;
+}
+
+.desc-toggle{
+  display:inline-block;
+  margin-top:4px;
+  font-size:.85rem;
+  font-weight:600;
+  color:var(--primary);
+  cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="topbar fancy-topbar" id="topbar">
+    <a href="/dashboard" class="back-link">
+      <i class="fas fa-arrow-left"></i>
+      <span>Kembali</span>
+    </a>
+
+    <div class="topbar-actions">
+      <button class="cart-btn" onclick="addToCartFromDetail()" title="Tambah ke Keranjang">
+        🛒
+      </button>
+
+      <button class="toggle theme-btn" onclick="toggleTheme()" title="Ganti Tema">
+        🌙
+      </button>
+    </div>
+  </div>
+
+
+  <!-- PRODUCT -->
+  <div class="card product-card">
+  <div class="product-header">
+    <h2 id="pName" class="product-title"></h2>
+    <span class="product-badge">Produk</span>
+  </div>
+
+  <div id="pMedia" class="product-media"></div>
+
+  <div class="product-info">
+    <p class="price" id="pPrice"></p>
+    <p id="pDesc" class="desc"></p>
+<span id="descToggle" class="desc-toggle" onclick="toggleDesc()" style="display:none">
+  Selengkapnya
+</span>
+
+  <button id="buyBtn" class="buy-btn">
+    <i class="fas fa-whatsapp"></i> Beli via WhatsApp
+  </button>
+</div>
+
+
+
+  <!-- COMMENTS -->
+  <div class="card">
+    <h3>Komentar</h3>
+    <div id="commentList"></div>
+
+    <textarea id="commentInput" placeholder="Tulis komentar..."></textarea>
+    <br><br>
+    <button onclick="sendComment()">Kirim</button>
+  </div>
+
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/tab.js"></script>
+<script>
+const socket = io();
+let descExpanded = false;
+const params = new URLSearchParams(location.search);
+const productId = params.get('id');
+function applyDescToggle(text){
+  pDesc.innerText = text;
+
+  // cek kepanjangan
+  setTimeout(()=>{
+    if(pDesc.scrollHeight > pDesc.clientHeight){
+      descToggle.style.display = 'inline-block';
+    }
+  },10);
+}
+
+function toggleDesc(){
+  descExpanded = !descExpanded;
+  pDesc.classList.toggle('expanded', descExpanded);
+  descToggle.innerText = descExpanded ? 'Tutup' : 'Selengkapnya';
+}
+/* ===== DARK MODE ===== */
+function toggleTheme(){
+  document.body.classList.toggle('dark');
+  localStorage.theme =
+    document.body.classList.contains('dark') ? 'dark' : 'light';
+}
+if(localStorage.theme==='dark') document.body.classList.add('dark');
+
+/* ===== FORMAT DATE ===== */
+function formatDate(d){
+  return new Date(d).toLocaleString('id-ID',{
+    day:'2-digit',month:'short',year:'numeric',
+    hour:'2-digit',minute:'2-digit'
+  });
+}
+
+/* ===== COMMENTS ===== */
+let commentMap = {}; // id => element div
+let replyMap = {}; // id => reply array
+let lastScroll = 0;
+const topbar = document.getElementById('topbar');
+
+window.addEventListener('scroll', () => {
+  const current = window.scrollY;
+
+  if(current > lastScroll && current > 80){
+    topbar.classList.add('hide'); // scroll ke bawah
+  }else{
+    topbar.classList.remove('hide'); // scroll ke atas
+  }
+  lastScroll = current;
+});
+async function addToCartFromDetail(){
+  await apiFetch('/api/cart',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ itemId: productId, qty:1 })
+  });
+
+  alert('Produk masuk keranjang 🛒');
+}
+async function loadComments(){
+  const res = await apiFetch(`/api/comments/${productId}`);
+  const data = await res.json();
+  commentList.innerHTML='';
+  commentMap = {};
+  replyMap = {};
+
+  // Ambil likes tiap komentar
+  const likesRes = await apiFetch(`/api/comments/likes/${productId}`);
+  const likesData = await likesRes.json();
+  const likesMap = {};
+  likesData.forEach(l => { likesMap[l.comment_id] = l.total; });
+
+  const mainComments = data.filter(c => !c.parent_id);
+  const replies = data.filter(c => c.parent_id);
+
+  mainComments.forEach(c=>{
+    c.likes = likesMap[c.id]||0;
+    const el = renderComment(c, false);
+    commentMap[c.id] = el;
+    replyMap[c.id] = [];
+  });
+
+  replies.forEach(r=>{
+    r.likes = likesMap[r.id]||0;
+    if(replyMap[r.parent_id]) replyMap[r.parent_id].push(r);
+  });
+
+  // Tambahkan tombol toggle untuk main comments yang punya balasan
+  Object.keys(replyMap).forEach(parentId=>{
+    const parentDiv = commentMap[parentId];
+    const repliesArr = replyMap[parentId];
+    if(repliesArr.length){
+      const toggleBtn = document.createElement('span');
+      toggleBtn.className='toggle-replies';
+      toggleBtn.innerText = `Tampilkan balasan (${repliesArr.length})`;
+      toggleBtn.onclick = ()=>toggleReplies(parentDiv, repliesArr);
+      parentDiv.querySelector('.comment-body').prepend(toggleBtn);
+    }
+  });
+}
+
+function renderComment(c, highlight=true){
+  const div = document.createElement('div');
+  div.className='comment';
+  if(highlight) div.classList.add('new-comment');
+  div.dataset.id = c.id;
+  div.innerHTML=`
+    <img class="avatar" src="${c.avatar?'/uploads/'+c.avatar:'/media/default-avatar.png'}">
+    <div class="comment-body">
+      <div class="comment-header">
+        <span class="comment-user">${c.username}</span>
+        <span class="comment-date">${formatDate(c.created_at || Date.now())}</span>
+      </div>
+      <div>${c.text}</div>
+      <div class="comment-actions">
+        <span onclick="likeComment(this)" data-id="${c.id}">❤️ <b>${c.likes||0}</b></span>
+        <span onclick="toggleReply(this)">💬 Reply</span>
+      </div>
+      <div class="reply-box">
+        <textarea placeholder="Balas komentar..."></textarea>
+        <button onclick="sendReply(this)">Kirim</button>
+      </div>
+      <div class="replies" style="margin-left:20px;"></div>
+    </div>
+  `;
+  commentList.prepend(div);
+  commentMap[c.id] = div;
+  scrollToElement(div);
+  if(highlight){
+    setTimeout(()=>div.classList.remove('new-comment'),1500);
+  }
+  return div;
+}
+
+function addReply(parentDiv, reply, highlight=true){
+  const container = parentDiv.querySelector('.replies');
+  const div = document.createElement('div');
+  div.className='comment';
+  if(highlight) div.classList.add('new-comment');
+  div.dataset.id = reply.id;
+  div.innerHTML=`
+    <img class="avatar" src="${reply.avatar?'/uploads/'+reply.avatar:'/media/default-avatar.png'}">
+    <div class="comment-body">
+      <div class="comment-header">
+        <span class="comment-user">${reply.username}</span>
+        <span class="comment-date">${formatDate(reply.created_at || Date.now())}</span>
+      </div>
+      <div>${reply.text}</div>
+      <div class="comment-actions">
+        <span onclick="likeComment(this)" data-id="${reply.id}">❤️ <b>${reply.likes||0}</b></span>
+        <span onclick="toggleReply(this)">💬 Reply</span>
+      </div>
+      <div class="reply-box">
+        <textarea placeholder="Balas komentar..."></textarea>
+        <button onclick="sendReply(this)">Kirim</button>
+      </div>
+      <div class="replies" style="margin-left:20px;"></div>
+    </div>
+  `;
+  container.appendChild(div);
+  commentMap[reply.id] = div;
+  scrollToElement(div);
+  if(highlight){
+    setTimeout(()=>div.classList.remove('new-comment'),1500);
+  }
+}
+
+function toggleReplies(parentDiv, repliesArr){
+  const container = parentDiv.querySelector('.replies');
+  const toggleBtn = parentDiv.querySelector('.toggle-replies');
+  if(container.style.display==='block'){
+    container.style.display='none';
+    toggleBtn.innerText = `Tampilkan balasan (${repliesArr.length})`;
+  } else {
+    container.style.display='block';
+    container.innerHTML=''; // clear dulu
+    repliesArr.forEach(r=>addReply(parentDiv,r,false));
+    toggleBtn.innerText = `Sembunyikan balasan`;
+  }
+}
+
+function scrollToElement(el){
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ===== SEND COMMENT ===== */
+async function sendComment(){
+  const text = commentInput.value.trim();
+  if(!text) return;
+  await apiFetch('/api/comments',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({productId,text})
+  });
+  commentInput.value='';
+}
+
+/* ===== SOCKET ===== */
+socket.on('new-comment', c=>{
+  if(c.product_id!=productId) return;
+  if(!c.parent_id){ 
+    const el = renderComment(c);
+    replyMap[c.id] = [];
+  } else {
+    const parent = commentMap[c.parent_id];
+    if(parent){
+      replyMap[c.parent_id].push(c);
+      const container = parent.querySelector('.replies');
+      if(container.style.display==='block'){
+        addReply(parent,c);
+      }
+    }
+  }
+});
+
+socket.on('comment-liked', data=>{
+  const el = document.querySelector(`[data-id="${data.commentId}"] b`);
+  if(el) el.innerText = data.totalLikes;
+});
+
+/* ===== LIKE / REPLY UI ===== */
+async function likeComment(el){
+  const commentId = el.dataset.id;
+  const res = await apiFetch(`/api/comments/like/${commentId}`, { method:'POST' });
+  const data = await res.json();
+  if(data.totalLikes!==undefined) el.querySelector('b').innerText = data.totalLikes;
+}
+
+function toggleReply(el){
+  const box = el.closest('.comment-body').querySelector('.reply-box');
+  box.style.display = box.style.display==='block'?'none':'block';
+}
+
+async function sendReply(el){
+  const box = el.closest('.reply-box');
+  const text = box.querySelector('textarea').value.trim();
+  if(!text) return;
+  const commentEl = el.closest('.comment');
+  const parentId = commentEl.dataset.id;
+  await apiFetch('/api/comments', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ productId, text, parentId })
+  });
+  box.querySelector('textarea').value='';
+  box.style.display='none';
+}
+
+/* ===== PRODUCT ===== */
+async function loadProduct(){
+  const res = await apiFetch('/api/items');
+  const items = await res.json();
+  const p = items.find(x=>x.id==productId);
+  if(!p) return;
+
+  pName.innerText = p.name;
+  pPrice.innerText = 'Rp ' + p.price;
+  applyDescToggle(p.description || '');
+
+
+  if(p.media){
+    const ext = p.media.split('.').pop();
+    pMedia.innerHTML =
+      ['mp4','webm'].includes(ext)
+        ? `<video src="/uploads/${p.media}" controls></video>`
+        : `<img src="/uploads/${p.media}">`;
+  }
+
+  buyBtn.onclick=()=>window.open(
+    `https://wa.me/628XXXXXXXXXX?text=Beli ${p.name}`
+  );
+}
+
+loadProduct();
+loadComments();
+socket.emit('join-product', productId);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Produk - FannyFa</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+body{font-family:'Inter',sans-serif;background:#f3f4f6;margin:0}
+.topbar{
+  background:#4f46e5;color:#fff;padding:1rem 1.5rem;
+  display:flex;justify-content:space-between;align-items:center
+}
+.back-btn{color:#fff;text-decoration:none;font-size:.9rem}
+
+.container{padding:1rem;max-width:1200px;margin:auto}
+
+.card{
+  background:#fff;padding:1rem;border-radius:12px;
+  box-shadow:0 4px 6px rgba(0,0,0,.1);margin-bottom:1rem
+}
+
+.filter-bar,.bulk-bar{
+  display:flex;gap:12px;margin-bottom:1rem;flex-wrap:wrap
+}
+.filter-bar input,.filter-bar select{
+  padding:8px 12px;border-radius:8px;border:1px solid #d1d5db
+}
+
+.bulk-bar button{
+  background:#ef4444;color:#fff;border:none;
+  padding:8px 14px;border-radius:8px;cursor:pointer
+}
+.bulk-bar button:disabled{opacity:.5;cursor:not-allowed}
+
+.product-list{list-style:none;padding:0;margin:0}
+.product-list li{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:12px;padding:12px;border-radius:12px;
+  border:1px solid #eee;margin-bottom:10px;
+  transition:.2s;background:#fff
+}
+.product-list li:hover{
+  box-shadow:0 8px 20px rgba(0,0,0,.08);
+  transform:translateY(-2px)
+}
+
+.product-left{display:flex;align-items:center;gap:12px}
+.product-left input{transform:scale(1.2)}
+
+.product-info{display:flex;align-items:center;gap:12px}
+.product-info img,.product-info video{
+  width:60px;height:60px;object-fit:cover;border-radius:8px
+}
+
+.product-details span{color:#ef4444;font-weight:600}
+.product-details small{font-size:.75rem;color:#6b7280}
+
+.product-actions button{
+  padding:6px 10px;border:none;border-radius:6px;
+  cursor:pointer;display:flex;align-items:center;gap:6px
+}
+.edit-btn{background:#fbbf24;color:#fff}
+.delete-btn{background:#ef4444;color:#fff}
+
+/* PAGINATION */
+.pagination{
+  display:flex;gap:6px;justify-content:center;margin-top:1rem
+}
+.pagination button{
+  padding:6px 10px;border:none;border-radius:6px;
+  background:#e5e7eb;cursor:pointer
+}
+.pagination button.active{
+  background:#4f46e5;color:#fff
+}
+
+/* MODAL */
+.modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
+  display:none;align-items:center;justify-content:center;z-index:999
+}
+.modal.show{display:flex}
+.modal-content{
+  background:#fff;width:90%;max-width:420px;
+  padding:1.2rem;border-radius:12px;position:relative;
+  animation:zoom .2s ease
+}
+@keyframes zoom{
+  from{transform:scale(.9);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+.close{
+  position:absolute;top:10px;right:14px;
+  font-size:22px;cursor:pointer
+}
+.modal-content input,.modal-content textarea{
+  width:100%;padding:8px;margin-bottom:10px;
+  border-radius:8px;border:1px solid #ccc
+}
+#mediaPreview img,#mediaPreview video{
+  width:100%;height:160px;object-fit:cover;border-radius:8px
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+  <h1><i class="fas fa-box"></i> Edit Produk</h1>
+  <a href="/admin" class="back-btn">
+    <i class="fas fa-arrow-left"></i> Kembali
+  </a>
+</header>
+
+<div class="container">
+
+  <!-- SEARCH & FILTER -->
+  <div class="filter-bar">
+    <input type="text" id="searchInput" placeholder="Cari produk...">
+    <select id="priceFilter">
+      <option value="">Semua Harga</option>
+      <option value="low">Termurah</option>
+      <option value="high">Termahal</option>
+    </select>
+  </div>
+
+  <!-- BULK DELETE -->
+  <div class="bulk-bar">
+    <label>
+      <input type="checkbox" id="selectAll"> Pilih Semua
+    </label>
+    <button id="bulkDeleteBtn" disabled>
+      <i class="fas fa-trash"></i> Hapus Terpilih
+    </button>
+  </div>
+
+  <!-- LIST -->
+  <div class="card">
+    <ul class="product-list" id="productList"></ul>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal" id="editModal">
+  <div class="modal-content">
+    <span class="close" onclick="closeEditModal()">×</span>
+    <h3>Edit Produk</h3>
+    <form id="editForm" enctype="multipart/form-data">
+      <input type="hidden" name="id" id="editId">
+      <input type="text" name="name" id="editName" required>
+      <input type="number" name="price" id="editPrice" required>
+      <textarea name="description" id="editDesc"></textarea>
+      <input type="file" name="media" id="editMedia" accept="image/*,video/*">
+      <div id="mediaPreview"></div>
+      <button type="submit">💾 Simpan</button>
+    </form>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/tab.js"></script>
+<script>
+let products=[];
+let filtered=[];
+let currentPage=1;
+const perPage=5;
+
+/* LOAD */
+async function loadProducts(){
+  const res=await apiFetch('/admin/items');
+  products=await res.json();
+  filtered=[...products];
+  render();
+}
+
+/* RENDER */
+function render(){
+  const ul=document.getElementById('productList');
+  ul.innerHTML='';
+
+  const start=(currentPage-1)*perPage;
+  const pageItems=filtered.slice(start,start+perPage);
+
+  pageItems.forEach(p=>{
+    const ext=p.media?.split('.').pop().toLowerCase();
+    const media=['mp4','webm','ogg'].includes(ext)
+      ? `<video src="/uploads/${p.media}"></video>`
+      : `<img src="/uploads/${p.media||''}">`;
+
+    ul.innerHTML+=`
+      <li>
+        <div class="product-left">
+          <input type="checkbox" class="chk" value="${p.id}">
+          <div class="product-info">
+            ${media}
+            <div class="product-details">
+              <strong>${p.name}</strong>
+              <span>Rp ${p.price}</span>
+            </div>
+          </div>
+        </div>
+        <div class="product-actions">
+          <button class="edit-btn" onclick="openEditModal(${p.id})">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="delete-btn" onclick="deleteProduct(${p.id})">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </li>
+    `;
+  });
+
+  renderPagination();
+  bindCheckbox();
+}
+
+/* PAGINATION */
+function renderPagination(){
+  const total=Math.ceil(filtered.length/perPage);
+  pagination.innerHTML='';
+  for(let i=1;i<=total;i++){
+    pagination.innerHTML+=`
+      <button class="${i===currentPage?'active':''}"
+        onclick="goPage(${i})">${i}</button>
+    `;
+  }
+}
+function goPage(p){
+  currentPage=p;
+  render();
+}
+
+/* SEARCH & FILTER */
+searchInput.oninput=()=>{
+  const q=searchInput.value.toLowerCase();
+  filtered=products.filter(p=>p.name.toLowerCase().includes(q));
+  currentPage=1;
+  render();
+};
+
+priceFilter.onchange=()=>{
+  filtered=[...filtered];
+  if(priceFilter.value==='low') filtered.sort((a,b)=>a.price-b.price);
+  if(priceFilter.value==='high') filtered.sort((a,b)=>b.price-a.price);
+  render();
+};
+
+/* BULK DELETE */
+function bindCheckbox(){
+  bulkDeleteBtn.disabled=!document.querySelector('.chk:checked');
+  document.querySelectorAll('.chk').forEach(c=>{
+    c.onchange=()=>bulkDeleteBtn.disabled=!document.querySelector('.chk:checked');
+  });
+}
+selectAll.onchange=e=>{
+  document.querySelectorAll('.chk').forEach(c=>c.checked=e.target.checked);
+  bulkDeleteBtn.disabled=!e.target.checked;
+};
+bulkDeleteBtn.onclick=async()=>{
+  const ids=[...document.querySelectorAll('.chk:checked')].map(c=>c.value);
+  if(!confirm(`Hapus ${ids.length} produk?`))return;
+  for(const id of ids){
+    await fetch(`/admin/items/${id}`,{method:'DELETE'});
+  }
+  loadProducts();
+};
+
+/* DELETE */
+async function deleteProduct(id){
+  if(confirm('Hapus produk ini?')){
+    await apiFetch(`/admin/items/${id}`,{method:'DELETE'});
+    loadProducts();
+  }
+}
+
+/* EDIT MODAL */
+function openEditModal(id){
+  const p=products.find(x=>x.id===id);
+  editId.value=p.id;
+  editName.value=p.name;
+  editPrice.value=p.price;
+  editDesc.value=p.description||'';
+  mediaPreview.innerHTML='';
+  if(p.media){
+    const ext=p.media.split('.').pop();
+    mediaPreview.innerHTML=
+      ['mp4','webm','ogg'].includes(ext)
+      ? `<video src="/uploads/${p.media}" controls></video>`
+      : `<img src="/uploads/${p.media}">`;
+  }
+  editModal.classList.add('show');
+}
+function closeEditModal(){
+  editModal.classList.remove('show');
+}
+
+editForm.onsubmit=async e=>{
+  e.preventDefault();
+  const fd=new FormData(editForm);
+  await apiFetch(`/admin/items/${fd.get('id')}`,{
+    method:'PUT',body:fd
+  });
+  alert('Produk diupdate');
+  closeEditModal();
+  loadProducts();
+};
+
+loadProducts();
+</script>
+
+</body>
+</html>

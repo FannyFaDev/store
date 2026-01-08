@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FannyFa  Ai - downloader & ai sssistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* --------------------
+       Variables & Reset
+    -------------------- */
+    :root {
+  --primary: #aebac1;       /* hijau muda natural */
+  --primary-dark: #aebac1;  /* hijau khas WhatsApp */
+  --secondary: #25D366;     /* hijau terang WA */
+  --accent: #3ABEF9;        /* biru soft, gak terlalu tajam */
+  --success: #22c55e;       /* hijau sukses */
+  --warning: #fbbf24;       /* kuning agak soft */
+  --error: #f87171;         /* merah soft biar ga nusuk */
+  --bg-dark: #121b22;       /* lebih lembut dari #0b141a */
+  --bg-card: #121b22;       /* bubble chat */
+  --bg-input: #2a3942;      /* input chat */
+  --text-light: #f5f6f6;    /* teks utama lebih putih */
+  --text-muted: #aebac1;    /* teks sekunder abu soft */
+  --border: #aebac1;        /* border halus */
+      --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+      --glass: rgba(255, 255, 255, 0.05);
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-light);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* --------------------
+       Layout & Structure
+    -------------------- */
+    .app-wrapper {
+      position: relative;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex; /* Menggunakan flexbox untuk layout yang lebih solid */
+    }
+
+    .panels-container {
+      display: flex;
+      width: 200vw; /* Dua panel, masing-masing 100vw */
+      height: 100%;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      /* Opsi lain: scroll-snap untuk UX yang lebih baik */
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch; /* untuk iOS */
+    }
+    /* Sembunyikan scrollbar agar tampilan lebih bersih */
+    .panels-container::-webkit-scrollbar { display: none; }
+    .panels-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .app-panel {
+      width: 100vw;
+      padding: 2rem;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      scroll-snap-align: start; /* Snap ke awal setiap panel */
+    }
+
+    .panel-content {
+        max-width: 700px;
+        width: 100%;
+        padding: 2rem;
+        background: var(--bg-card);
+        border-radius: 1.25rem;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        margin-top: 2rem;
+        height: fit-content;
+    }
+
+    .panel-content:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.7);
+    }
+
+    /* --------------------
+       Header & Navigation
+    -------------------- */
+    .app-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo{
+  color:#4f46e5; /* fallback */
+  background: var(--gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+
+    /* Tombol alih mode yang di-upgrade */
+    .nav-tabs {
+        display: flex;
+        gap: 1rem;
+        background: var(--bg-input);
+        padding: 0.35rem;
+        border-radius: 2rem;
+        position: relative;
+    }
+
+    .nav-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      z-index: 2;
+      color: var(--text-muted); /* Warna default untuk tab tidak aktif */
+    }
+
+    .nav-tab.active {
+      color: var(--text-light); /* Warna untuk tab aktif */
+    }
+
+    /* Indikator tab aktif */
+    .nav-indicator {
+      position: absolute;
+      top: 0.35rem;
+      left: 0.35rem;
+      height: calc(100% - 0.7rem);
+      width: calc(50% - 0.35rem);
+      background: var(--accent);
+      border-radius: 2rem;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 10px rgba(6, 182, 212, 0.3);
+      z-index: 1;
+    }
+
+    /* Set posisi indikator berdasarkan data-active */
+    .nav-tabs[data-active="downloader"] .nav-indicator {
+        transform: translateX(100%);
+    }
+
+    .nav-tabs[data-active="ai"] .nav-indicator {
+        transform: translateX(0);
+    }
+
+    /* --------------------
+       Shared Section Styles
+    -------------------- */
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-title i {
+      color: var(--accent);
+      font-size: 1.25rem;
+    }
+
+    .section-description {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.7;
+    }
+
+    /* --------------------
+       Form Elements
+    -------------------- */
+    .input-container {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      font-size: 1rem;
+      background: var(--bg-input);
+      border: 2px solid var(--border);
+      color: var(--text-light);
+      border-radius: 0.75rem;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+    }
+
+    input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .button-primary {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: white;
+      background: var(--gradient);
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .button-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+    }
+
+    .button-primary:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* --------------------
+       Status & Messages
+    -------------------- */
+    .status {
+      min-height: 2.5rem;
+      margin-top: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      font-weight: 500;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.4s ease;
+    }
+
+    .status.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .status-success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+
+    .status-error {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--error);
+    }
+
+    .status-pending {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+    }
+
+    /* --------------------
+       Video Section
+    -------------------- */
+    .video-section {
+      margin-top: 1.5rem;
+      display: none;
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .video-section.active {
+      display: block;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 0.75rem;
+      background: #000;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .download-guide {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: var(--bg-input);
+      border-radius: 0.75rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .download-guide strong {
+      color: var(--accent);
+    }
+
+    /* --------------------
+       AI Chat Section
+    -------------------- */
+    .chat-container {
+      height: 60vh; /* Responsive height */
+      display: flex;
+      flex-direction: column;
+    }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      background: var(--bg-input);
+      border-radius: 0.75rem;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      scroll-behavior: smooth;
+    }
+    /* Sembunyikan scrollbar untuk chat */
+    #chat::-webkit-scrollbar { display: none; }
+    #chat { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .message {
+      max-width: 80%;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      line-height: 1.5;
+      animation: messageIn 0.3s ease-out;
+      position: relative;
+    }
+
+    @keyframes messageIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .user-message {
+      align-self: flex-end;
+      background: var(--primary);
+      color: white;
+      border-bottom-right-radius: 0.25rem;
+    }
+
+    .ai-message {
+      align-self: flex-start;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 0.25rem;
+    }
+
+    .ai-profile {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 8px;
+      vertical-align: middle;
+      display: inline-block;
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .chat-input-container {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    #chatInput {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      background: var(--bg-input);
+      border: 2px solid var(--border);
+      border-radius: 0.75rem;
+      color: var(--text-light);
+      outline: none;
+    }
+
+    #chatInput:focus {
+      border-color: var(--accent);
+    }
+
+    #sendBtn {
+      padding: 0.75rem 1.25rem;
+      background: var(--gradient);
+      border: none;
+      border-radius: 0.75rem;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    #sendBtn:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+
+    #sendBtn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    /* --------------------
+       Bug Report & Footer
+    -------------------- */
+    .bug-report {
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+
+    .bug-report a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      transition: all 0.3s ease;
+    }
+
+    .bug-report a:hover {
+      background: rgba(6, 182, 212, 0.1);
+    }
+
+    .app-footer {
+      text-align: center;
+      padding: 0rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 0rem;
+    }
+
+    /* --------------------
+       Background Effects
+    -------------------- */
+    .bg-effects {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .bg-effect {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.1;
+      filter: blur(40px);
+    }
+
+    .effect-1 {
+      width: 500px;
+      height: 500px;
+      background: var(--primary);
+      top: -200px;
+      left: -200px;
+      animation: float 15s infinite ease-in-out;
+    }
+
+    .effect-2 {
+      width: 600px;
+      height: 600px;
+      background: var(--secondary);
+      bottom: -300px;
+      right: -200px;
+      animation: float 20s infinite ease-in-out reverse;
+    }
+
+    .effect-3 {
+      width: 400px;
+      height: 400px;
+      background: var(--accent);
+      top: 50%;
+      left: 40%;
+      animation: float 25s infinite ease-in-out;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(30px, 30px) rotate(180deg); }
+    }
+
+    /* --------------------
+       Responsive Design
+    -------------------- */
+    @media (max-width: 768px) {
+      .app-panel {
+        padding: 1rem;
+      }
+
+      .panel-content {
+        padding: 1.5rem;
+        margin-top: 4rem;
+      }
+
+      .app-header {
+        padding: 0.75rem 1rem;
+      }
+
+      .logo {
+        font-size: 1.25rem;
+      }
+
+      .nav-tabs {
+        gap: 0.5rem;
+      }
+
+      .nav-tab {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+      }
+
+      .chat-container {
+        height: 50vh;
+      }
+
+      .message {
+        max-width: 90%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      /* Sembunyikan teks tab di layar kecil */
+      .nav-tab span {
+        display: none;
+      }
+
+      .nav-tab {
+        padding: 0.5rem;
+      }
+
+      .nav-tab i {
+        margin: 0;
+      }
+
+      .panel-content {
+        padding: 1rem;
+      }
+    }
+
+    /* Loading animation */
+    .typing-indicator {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--bg-input);
+      border-radius: 18px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      margin: 0 2px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      opacity: 0.6;
+      animation: typingAnimation 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingAnimation {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
+      30% { transform: translateY(-5px); opacity: 1; }
+    }
+.back-home-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.back-home-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* KUNCI UTAMA */
+}
+  </style>
+</head>
+<body>
+  <div class="bg-effects">
+    <div class="bg-effect effect-1"></div>
+    <div class="bg-effect effect-2"></div>
+    <div class="bg-effect effect-3"></div>
+  </div>
+
+  <header class="app-header">
+    <div class="logo">
+<button class="back-home-btn" onclick="window.location.href='/'" aria-label="Kembali ke Home">
+  <img src="https://iili.io/fMtkO5Q.png" alt="Back">
+</button>
+      <i class="fas fa-robot"></i>
+      <span>FannyFa  AI</span>
+    </div>
+    <div class="nav-tabs" data-active="ai">
+      <div class="nav-indicator"></div>
+      <div class="nav-tab active" data-tab="ai">
+        <i class="fas fa-robot"></i> <span>AI Assistant</span>
+      </div>
+      <div class="nav-tab" data-tab="downloader">
+        <i class="fas fa-download"></i> <span>Downloader</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-wrapper">
+    <div class="panels-container" id="panelsContainer">
+      <div class="app-panel" id="aiPanel">
+        <section class="panel-content">
+          <h2 class="section-title">
+            <i class="fas fa-robot"></i>
+            FannyFa  AI
+          </h2>
+          <p class="section-description">
+            Tanya apa saja pada asisten AI kami. Dijawab dengan bahasa gaul dan to the point. Jangan lupa kasih emoji biar makin asik!
+          </p>
+
+          <div class="chat-container">
+            <div id="chat"></div>
+            <div class="chat-input-container">
+              <input type="text" id="chatInput" placeholder="Tulis pertanyaan lo..." />
+              <button id="sendBtn">Kirim</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="app-panel" id="downloaderPanel">
+        <section class="panel-content">
+          <h2 class="section-title">
+            <i class="fas fa-download"></i>
+            Social Media Downloader
+          </h2>
+          <p class="section-description">
+            Download video dari TikTok, Instagram, Twitter, dan platform lainnya dengan kualitas tinggi. Cukup tempel link dan nikmati hasilnya.
+          </p>
+
+          <div class="input-container">
+            <input type="text" id="linkInput" placeholder="Contoh: https://www.tiktok.com/@user/video/..." />
+          </div>
+
+          <button id="downloadButton" class="button-primary">
+            <i class="fas fa-download"></i> Download Video
+          </button>
+
+          <div id="status" class="status"></div>
+
+          <div id="videoSection" class="video-section">
+            <video id="resultVideo" controls></video>
+            <div class="download-guide">
+              <strong>Cara Download:</strong> Setelah video muncul, klik ikon <strong>titik tiga (⋮)</strong> yang ada di kanan bawah video, lalu pilih <strong>Download</strong>.
+            </div>
+          </div>
+
+          <div class="bug-report">
+            <a href="https://wa.me/6285624179853?text=Halo%2C%20saya%20menemukan%20bug%20di%20Downloader%20Sosmed." target="_blank">
+              <i class="fab fa-whatsapp"></i> Laporkan Bug
+            </a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <p>&copy; develover : FannyFaDeveloper</p>
+  </footer>
+  
+  <script src="/js/api.js"></script>
+  <script src="/js/tab.js"></script>
+ <script>
+    // DOM Elements
+    const linkInput = document.getElementById('linkInput');
+    const downloadButton = document.getElementById('downloadButton');
+    const status = document.getElementById('status');
+    const videoSection = document.getElementById('videoSection');
+    const resultVideo = document.getElementById('resultVideo');
+    const chat = document.getElementById('chat');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const navTabs = document.querySelectorAll('.nav-tab');
+    const panelsContainer = document.getElementById('panelsContainer');
+    const navTabsContainer = document.querySelector('.nav-tabs');
+    const aiPanel = document.getElementById('aiPanel');
+    const downloaderPanel = document.getElementById('downloaderPanel');
+
+    // AI Profile Image URL
+    const aiProfileImage = "https://img1.pixhost.to/images/8283/635584255_media.jpg";
+
+    // Tab Navigation & Sliding
+    navTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.getAttribute('data-tab');
+
+        // Update active tab via data attribute on container
+        navTabsContainer.setAttribute('data-active', tabName);
+
+        // Remove 'active' class from all tabs
+        navTabs.forEach(t => t.classList.remove('active'));
+        // Add 'active' class to the clicked tab
+        tab.classList.add('active');
+
+        // Use scrollIntoView to move directly to the correct panel
+        if (tabName === 'ai') {
+          panelsContainer.scroll({ left: 0, behavior: 'smooth' });
+        } else {
+          panelsContainer.scroll({ left: panelsContainer.clientWidth, behavior: 'smooth' });
+        }
+      });
+    });
+
+    // Downloader functionality
+    downloadButton.addEventListener('click', downloadMedia);
+    linkInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        downloadMedia();
+      }
+    });
+
+    async function downloadMedia() {
+      const link = linkInput.value.trim();
+      const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+
+      if (!link || !urlRegex.test(link)) {
+        setStatus('<i class="fas fa-exclamation-triangle"></i> Masukkan link yang valid!', 'error');
+        return;
+      }
+
+      downloadButton.disabled = true;
+      downloadButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+      setStatus('<i class="fas fa-hourglass-half"></i> Sedang memproses link...', 'pending');
+      videoSection.classList.remove('active');
+      resultVideo.src = '';
+
+      try {
+        const res = await fetch('https://auto-download-all-in-one.p.rapidapi.com/v1/social/autolink', {
+          method: 'POST',
+          headers: {
+            'accept-encoding': 'gzip',
+            'cache-control': 'no-cache',
+            'content-type': 'application/json; charset=utf-8',
+            referer: 'https://auto-download-all-in-one.p.rapidapi.com/',
+            'user-agent': 'Mozilla/5.0',
+            'x-rapidapi-host': 'auto-download-all-in-one.p.rapidapi.com',
+            'x-rapidapi-key': '1dda0d29d3mshc5f2aacec619c44p16f219jsn99a62a516f98'
+          },
+          body: JSON.stringify({ url: link })
+        });
+
+        const data = await res.json();
+
+        if (!data || !data.medias || data.medias.length === 0) {
+          setStatus('<i class="fas fa-times-circle"></i> Gagal mendapatkan video. Coba link lain atau pastikan link publik.', 'error');
+          return;
+        }
+
+        const media = data.medias[0];
+        resultVideo.src = media.url;
+        videoSection.classList.add('active');
+        setStatus('<i class="fas fa-check-circle"></i> Berhasil! Video siap diputar.', 'success');
+      } catch (err) {
+        console.error(err);
+        setStatus('<i class="fas fa-exclamation-circle"></i> Terjadi kesalahan. Silakan coba lagi nanti.', 'error');
+      } finally {
+        downloadButton.disabled = false;
+        downloadButton.innerHTML = '<i class="fas fa-download"></i> Download Video';
+      }
+    }
+
+    function setStatus(message, type) {
+      status.innerHTML = message;
+      status.className = `status visible status-${type}`;
+    }
+
+    // AI Chat functionality
+    let chatHistory = [];
+    const systemPrompt = "Lo FannyFa  AI, jawab semua pertanyaan user pake bahasa gaul, santai, langsung to the point, jangan panjang-panjang. Jangan lupa terselip emoji kalo pas.";
+
+    function appendMessage(role, text) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = role === 'user' ? 'message user-message' : 'message ai-message';
+
+      if (role === 'ai') {
+        const messageHeader = document.createElement('div');
+        messageHeader.className = 'message-header';
+        messageHeader.innerHTML = `<img src="${aiProfileImage}" class="ai-profile" alt="FannyFa  AI"> FannyFa  AI`;
+        messageDiv.appendChild(messageHeader);
+      }
+
+      const messageText = document.createElement('div');
+      messageText.textContent = text;
+      messageDiv.appendChild(messageText);
+
+      chat.appendChild(messageDiv);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'message ai-message';
+      typingDiv.id = 'typing-indicator';
+
+      const messageHeader = document.createElement('div');
+      messageHeader.className = 'message-header';
+      messageHeader.innerHTML = `<img src="${aiProfileImage}" class="ai-profile" alt="FannyFa  AI"> FannyFa  AI`;
+      typingDiv.appendChild(messageHeader);
+
+      const typingContainer = document.createElement('div');
+      typingContainer.className = 'typing-indicator';
+      typingContainer.innerHTML = `
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      `;
+      typingDiv.appendChild(typingContainer);
+
+      chat.appendChild(typingDiv);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+      const typingIndicator = document.getElementById('typing-indicator');
+      if (typingIndicator) {
+        chat.removeChild(typingIndicator);
+      }
+    }
+
+    sendBtn.addEventListener('click', async () => {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      appendMessage('user', text);
+      chatInput.value = '';
+      sendBtn.disabled = true;
+
+      showTypingIndicator();
+
+      try {
+        let context = chatHistory.slice(-5).map(c => `${c.role === 'user' ? 'User: ' : 'FannyFa  AI: '}${c.text}`).join('\n'); // Keep last 5 messages for context
+        const questionWithContext = `${systemPrompt}\n${context}\nUser: ${text}\nFannyFa  AI:`;
+
+        const res = await fetch(`https://api.yupra.my.id/api/ai/ypai?text=${encodeURIComponent(text)}`);
+        const data = await res.json();
+
+        removeTypingIndicator();
+
+        let reply = data.result || 'Gue ga ngerti nih, coba tanya yang lain deh.';
+        appendMessage('ai', reply);
+
+        chatHistory.push({ role: 'user', text });
+        chatHistory.push({ role: 'ai', text: reply });
+
+      } catch (err) {
+        removeTypingIndicator();
+        appendMessage('ai', 'Duh, ada error nih. Coba lagi nanti ya.');
+      }
+
+      sendBtn.disabled = false;
+    });
+
+    chatInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') sendBtn.click();
+    });
+
+    // Initialize with a welcome message on page load, only for the AI panel
+    window.addEventListener('load', () => {
+      const welcomeMessage = 'Halo gue FannyFa  AI! 👋 Ada yang bisa gue bantu?';
+      appendMessage('ai', welcomeMessage);
+      chatHistory.push({ role: 'ai', text: welcomeMessage });
+    });
+
+    // Add scroll event listener to update active tab
+    panelsContainer.addEventListener('scroll', () => {
+        const panelWidth = panelsContainer.clientWidth;
+        const currentScroll = panelsContainer.scrollLeft;
+        const aiTab = document.querySelector('.nav-tab[data-tab="ai"]');
+        const downloaderTab = document.querySelector('.nav-tab[data-tab="downloader"]');
+
+        if (currentScroll < panelWidth / 2) {
+            navTabsContainer.setAttribute('data-active', 'ai');
+            aiTab.classList.add('active');
+            downloaderTab.classList.remove('active');
+        } else {
+            navTabsContainer.setAttribute('data-active', 'downloader');
+            downloaderTab.classList.add('active');
+            aiTab.classList.remove('active');
+        }
+    });
+
+  </script>
+</body>
+</html>

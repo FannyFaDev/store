@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Admin Dashboard - FannyFa</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+:root{
+--sidebar-width:260px;
+--topbar-height:70px;
+--primary:#4e73df;
+--success:#1cc88a;
+--info:#36b9cc;
+--warning:#f6c23e;
+--danger:#e74a3b;
+--secondary:#858796;
+--dark:#5a5c69;
+--light:#f8f9fc;
+--white:#fff;
+--radius:.75rem;
+--shadow:0 .15rem 1.75rem rgba(58,59,69,.1)
+}
+*{box-sizing:border-box}
+body{
+margin:0;
+font-family:Poppins,system-ui;
+background:var(--light);
+color:var(--dark)
+}
+a{text-decoration:none;color:inherit}
+
+.page-wrapper{display:flex}
+
+/* ===== SIDEBAR ===== */
+.sidebar{
+width:var(--sidebar-width);
+height:100vh;
+background:var(--primary);
+position:fixed;
+left:0;top:0;
+z-index:1000;
+display:flex;
+flex-direction:column;
+transition:.3s
+}
+.sidebar-brand{
+padding:1.5rem;
+font-size:1.5rem;
+font-weight:700;
+color:#fff;
+text-align:center
+}
+.sidebar-nav{list-style:none;padding:0;margin:0}
+.nav-link{
+display:flex;
+gap:.75rem;
+padding:.9rem 1.5rem;
+color:rgba(255,255,255,.8);
+transition:.2s;
+border-left:4px solid transparent
+}
+.nav-link:hover{
+background:rgba(255,255,255,.1);
+border-left-color:#fff;
+color:#fff
+}
+.nav-item.logout{margin-top:auto;border-top:1px solid rgba(255,255,255,.2)}
+
+/* ===== CONTENT ===== */
+.content-wrapper{
+margin-left:var(--sidebar-width);
+width:100%;
+transition:.3s
+}
+.topbar{
+height:var(--topbar-height);
+background:#fff;
+display:flex;
+align-items:center;
+padding:0 1.5rem;
+box-shadow:var(--shadow)
+}
+.sidebar-toggle-btn{
+border:none;
+background:none;
+font-size:1.8rem;
+display:none;
+cursor:pointer
+}
+.main-content{padding:2rem}
+
+/* ===== DASHBOARD ===== */
+.dashboard-grid{
+display:grid;
+gap:1.5rem;
+grid-template-columns:repeat(auto-fit,minmax(250px,1fr))
+}
+.stat-card{
+background:#fff;
+border-radius:var(--radius);
+box-shadow:var(--shadow);
+border-left:5px solid;
+cursor:pointer;
+transition:.2s
+}
+.stat-card:hover{transform:translateY(-4px)}
+.card-body{
+padding:1.4rem;
+display:flex;
+justify-content:space-between;
+align-items:center
+}
+.card-title{
+font-size:.85rem;
+font-weight:700;
+text-transform:uppercase
+}
+.card-value{
+font-size:1.8rem;
+font-weight:700
+}
+.card-icon{font-size:2.8rem;color:#ddd}
+
+/* warna */
+.info{border-color:var(--info)}
+.success{border-color:var(--success)}
+.warning{border-color:var(--warning)}
+.primary{border-color:var(--primary)}
+.danger{border-color:var(--danger)}
+.secondary{border-color:var(--secondary)}
+.dark{border-color:var(--dark)}
+
+/* ===== MODAL ===== */
+.modal-overlay{
+position:fixed;inset:0;
+background:rgba(0,0,0,.5);
+opacity:0;visibility:hidden;
+transition:.3s;
+z-index:1001
+}
+.modal{
+position:fixed;
+top:50%;left:50%;
+transform:translate(-50%,-50%) scale(.95);
+background:#fff;
+border-radius:var(--radius);
+width:90%;max-width:800px;
+opacity:0;visibility:hidden;
+transition:.3s;
+z-index:1002
+}
+.modal.active,.modal-overlay.active{
+opacity:1;visibility:visible
+}
+.modal.active{transform:translate(-50%,-50%) scale(1)}
+.modal-header{
+padding:1rem 1.5rem;
+display:flex;
+justify-content:space-between;
+border-bottom:1px solid #eee
+}
+.modal-body{padding:1.5rem;max-height:70vh;overflow:auto}
+
+/* ===== MOBILE ===== */
+@media(max-width:992px){
+.sidebar{transform:translateX(-100%)}
+.sidebar.active{transform:translateX(0)}
+.content-wrapper{margin-left:0}
+.sidebar-toggle-btn{display:block}
+}
+</style>
+</head>
+
+<body>
+
+<div class="modal-overlay" id="modalOverlay"></div>
+
+<div class="page-wrapper">
+
+<nav class="sidebar" id="sidebar">
+<div class="sidebar-brand"><i class="bi bi-shield-shaded"></i> FannyFa</div>
+<ul class="sidebar-nav">
+<li><a class="nav-link" href="/admin"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+<li><a class="nav-link" href="/upload"><i class="bi bi-upload"></i> Upload Produk</a></li>
+<li><a class="nav-link" href="/edit"><i class="bi bi-pencil-square"></i> Edit</a></li>
+<li><a class="nav-link" href="/dashboard"><i class="bi bi-cart-check-fill"></i> Dashboard Order</a></li>
+<li><a class="nav-link" href="#"><i class="bi bi-clipboard-data-fill"></i> Rekap Transaksi</a></li>
+<li class="nav-item logout"><a class="nav-link" href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+</ul>
+</nav>
+
+<div class="content-wrapper">
+<header class="topbar">
+<button class="sidebar-toggle-btn" id="sidebarToggleBtn"><i class="bi bi-list"></i></button>
+<h4 style="margin-left:1rem">Admin Panel</h4>
+</header>
+
+<main class="main-content">
+<h2>Dashboard Overview</h2>
+
+<section class="dashboard-grid">
+<div class="stat-card info"><div class="card-body"><div><div class="card-title">Total User</div><div id="totalUsers" class="card-value">0</div></div><i class="bi bi-people-fill card-icon"></i></div></div>
+<div class="stat-card success"><div class="card-body"><div><div class="card-title">Terverifikasi</div><div id="verifiedUsers" class="card-value">0</div></div><i class="bi bi-person-check-fill card-icon"></i></div></div>
+<div class="stat-card warning"><div class="card-body"><div><div class="card-title">Belum Verifikasi</div><div id="unverifiedUsers" class="card-value">0</div></div><i class="bi bi-person-exclamation card-icon"></i></div></div>
+<div class="stat-card dark"><div class="card-body"><div><div class="card-title">Role User</div><div id="roleUser" class="card-value">0</div></div><i class="bi bi-person card-icon"></i></div></div>
+<div class="stat-card primary"><div class="card-body"><div><div class="card-title">Role Reseller</div><div id="roleReseller" class="card-value">0</div></div><i class="bi bi-person-video2 card-icon"></i></div></div>
+<div class="stat-card danger"><div class="card-body"><div><div class="card-title">Role Admin</div><div id="roleAdmin" class="card-value">0</div></div><i class="bi bi-person-gear card-icon"></i></div></div>
+</section>
+</main>
+</div>
+</div>
+
+<div class="modal" id="dataModal">
+<div class="modal-header">
+<h5 id="modalTitle">Detail</h5>
+<button id="modalCloseBtn"><i class="bi bi-x-lg"></i></button>
+</div>
+<div class="modal-body" id="modalBody"></div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/tab.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const sidebar=document.getElementById('sidebar');
+document.getElementById('sidebarToggleBtn').onclick=()=>{
+sidebar.classList.toggle('active')
+};
+
+/* close sidebar setelah klik (mobile) */
+document.querySelectorAll('.nav-link').forEach(l=>{
+l.addEventListener('click',()=>{
+if(window.innerWidth<992) sidebar.classList.remove('active')
+})
+});
+
+/* SOCKET SAFE UPDATE */
+const socket=io();
+socket.on('dashboard:update',d=>{
+const safe=v=>v??0;
+totalUsers.textContent=safe(d.totalUsers);
+verifiedUsers.textContent=safe(d.verifiedUsers);
+unverifiedUsers.textContent=safe(d.unverifiedUsers);
+roleUser.textContent=safe(d.roleUser);
+roleReseller.textContent=safe(d.roleReseller);
+roleAdmin.textContent=safe(d.roleAdmin);
+});
+</script>
+
+</body>
+</html>

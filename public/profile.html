@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil Saya - FannyFa</title>
+
+<style>
+  body{
+    font-family:Arial,sans-serif;
+    background:#f3f4f6;
+    margin:0;
+  }
+
+  header{
+    background:#4f46e5;
+    color:white;
+    padding:1rem;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+
+  header a{color:white;text-decoration:none}
+
+  main{
+    max-width:520px;
+    margin:2rem auto;
+    padding:0 1rem;
+  }
+
+  .card{
+    background:white;
+    border-radius:12px;
+    box-shadow:0 2px 6px rgba(0,0,0,.12);
+    overflow:hidden;
+  }
+
+  /* ===== TAB ===== */
+  .tabs{
+    display:flex;
+    border-bottom:1px solid #eee;
+  }
+
+  .tab{
+    flex:1;
+    padding:1rem;
+    text-align:center;
+    cursor:pointer;
+    font-weight:bold;
+    background:#f9fafb;
+  }
+
+  .tab.active{
+    background:white;
+    border-bottom:3px solid #4f46e5;
+    color:#4f46e5;
+  }
+
+  .tab-content{
+    display:none;
+    padding:1.5rem;
+  }
+
+  .tab-content.active{
+    display:block;
+  }
+
+  /* ===== AVATAR ===== */
+  .avatar-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    margin-bottom:1.2rem;
+  }
+
+  .avatar-wrap img{
+    width:120px;
+    height:120px;
+    border-radius:50%;
+    object-fit:cover;
+    border:3px solid #4f46e5;
+    margin-bottom:.6rem;
+  }
+
+  input{
+    width:100%;
+    padding:.75rem;
+    margin-bottom:.8rem;
+    border:1px solid #ccc;
+    border-radius:6px;
+    font-size:.95rem;
+  }
+
+  button{
+    width:100%;
+    padding:.75rem;
+    background:#4f46e5;
+    color:white;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:1rem;
+  }
+
+  button:hover{opacity:.9}
+
+  .btn-logout{
+    margin-top:1rem;
+    background:#ef4444;
+  }
+
+  .btn-logout:hover{background:#dc2626}
+
+  .link{
+    text-align:center;
+    margin-top:.5rem;
+    font-size:.85rem;
+  }
+
+  .link a{
+    color:#4f46e5;
+    text-decoration:none;
+  }
+
+  .success{color:green;margin-top:.5rem}
+  .error{color:red;margin-top:.5rem}
+</style>
+</head>
+
+<body>
+
+<header>
+  <strong>Profil Saya</strong>
+  <a href="/dashboard">Dashboard</a>
+</header>
+
+<main>
+  <div class="card">
+
+    <!-- TAB -->
+    <div class="tabs">
+      <div class="tab active" onclick="openTab('profil')">Profil</div>
+      <div class="tab" onclick="openTab('security')">Keamanan</div>
+    </div>
+
+    <!-- PROFIL -->
+    <div id="profil" class="tab-content active">
+      <form id="profileForm" enctype="multipart/form-data">
+
+        <div class="avatar-wrap">
+          <img id="avatarPreview" src="/media/default-avatar.png">
+          <input type="file" name="avatar" accept="image/*">
+        </div>
+
+        <input name="username" placeholder="Username baru" required>
+
+        <button type="submit">Simpan Profil</button>
+        <div id="msgProfile"></div>
+      </form>
+    </div>
+
+    <!-- KEAMANAN -->
+    <div id="security" class="tab-content">
+      <form id="passwordForm">
+        <input name="oldPassword" type="password"
+               placeholder="Password lama" required>
+
+        <input name="password" type="password"
+               placeholder="Password baru (min 6 karakter)" required>
+
+        <button type="submit">Ganti Password</button>
+        <div id="msgPassword"></div>
+
+        <div class="link">
+          <a href="#">Lupa password?</a>
+        </div>
+      </form>
+    </div>
+
+    <button class="btn-logout" onclick="logout()">Logout</button>
+  </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/tab.js"></script>
+<script>
+const avatarInput = document.querySelector('input[name="avatar"]');
+const avatarPreview = document.getElementById('avatarPreview');
+
+/* TAB */
+function openTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+/* AVATAR PREVIEW */
+avatarInput.onchange = e=>{
+  const f=e.target.files[0];
+  if(f) avatarPreview.src=URL.createObjectURL(f);
+};
+
+/* LOAD USER */
+async function loadProfile(){
+  const res = await apiFetch('/api/me');
+  const data = await res.json();
+
+  if(data.login){
+    document.querySelector('input[name="username"]').value = data.username;
+    if(data.avatar){
+      avatarPreview.src='/uploads/'+data.avatar+'?v='+Date.now();
+    }
+  }
+}
+
+/* UPDATE PROFIL */
+document.getElementById('profileForm').onsubmit = async e=>{
+  e.preventDefault();
+  const msg=document.getElementById('msgProfile');
+  msg.textContent='';
+
+  const fd=new FormData(e.target);
+  fd.append('mode','profile');
+
+  const res=await apiFetch('/api/profile',{method:'PUT',body:fd});
+  const data=await res.json();
+
+  msg.textContent = data.success
+    ? 'Profil berhasil diperbarui ✅'
+    : 'Gagal update ❌';
+  msg.className = data.success ? 'success':'error';
+};
+
+/* UPDATE PASSWORD */
+document.getElementById('passwordForm').onsubmit = async e=>{
+  e.preventDefault();
+  const msg=document.getElementById('msgPassword');
+  msg.textContent='';
+
+  const fd=new FormData(e.target);
+  fd.append('mode','password');
+
+  const res=await apiFetch('/api/profile',{method:'PUT',body:fd});
+  const data=await res.json();
+
+  msg.textContent = data.success
+    ? 'Password berhasil diganti ✅'
+    : data.message;
+  msg.className = data.success ? 'success':'error';
+};
+
+function logout(){
+  if(confirm('Yakin logout?')) location.href='/logout';
+}
+
+loadProfile();
+</script>
+
+</body>
+</html>

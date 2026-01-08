@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Keranjang</title>
+</head>
+<body>
+<h2>Keranjang Saya</h2>
+<div id="cart"></div>
+
+<script src="/js/api.js"></script>
+<script src="/js/tab.js"></script>
+<script>
+async function loadCart(){
+  const res = await apiFetch('/api/cart')
+  const data = await res.json()
+  const div = document.getElementById('cart')
+  div.innerHTML=''
+
+  data.forEach(i=>{
+    div.innerHTML += `
+      <div>
+        <b>${i.name}</b><br>
+        Rp ${i.price} x ${i.qty}<br>
+        <button onclick="hapus(${i.id})">Hapus</button>
+        <hr>
+      </div>
+    `
+  })
+}
+
+async function hapus(id){
+  await apiFetch('/api/cart/'+id,{method:'DELETE'})
+  loadCart()
+}
+
+loadCart()
+</script>
+</body>
+</html>
